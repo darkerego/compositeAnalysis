@@ -36,7 +36,7 @@ python3 ./main.py --base BTC/USDT --quote ETH/USDT --interval 1h
 </pre>
 
 
-<img src="example.png" alt="btcusdt/ethusdt">
+<img src="./example.png" alt="btcusdt/ethusdt">
 
 
 #### Did you find this helpful? 
