@@ -46,3 +46,9 @@ python3 ./main.py --base BTC/USDT --quote ETH/USDT --interval 1h
 <a href="ethereum://0x28722e44de90067f0Ea9C6aA7Fc09f465A70d9A6">
 Then buy me a coffee: 0x28722e44de90067f0Ea9C6aA7Fc09f465A70d9A6
 </a>
+
+#### TODO:
+- 05/11/2025, 02:45 am
+  - finish implementing moralis api.
+  - make sure it's robust enough
+    - switch to aggregating onchain data if not
