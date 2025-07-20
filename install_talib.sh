@@ -11,8 +11,10 @@ sha256sum  ta-lib-0.6.4-src.tar.gz|grep -q aa04066d17d69c73b1baaef0883414d3d56ab
 tar -xzf ta-lib-0.6.4-src.tar.gz
 cd 'ta-lib-0.6.4' || { echo 'huh?' ; exit 1 ; }
 # perform install
-make
+
 sudo apt-get -y -qq install python3-dev
-sudo make install
+./configure 
+make
+make install
 # install the python wrapper
 python -m pip install TA-Lib
