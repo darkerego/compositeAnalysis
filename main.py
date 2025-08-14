@@ -25,11 +25,26 @@ class Binance(ccxt.binance):
         ]
 
 class CompositeGenerator:
-    def __init__(self):
-        self.exchange = Binance()
+    def __init__(self, use_evm: bool = False):
+        """Create generator.
+
+        Parameters
+        ----------
+        use_evm: bool
+            If True, market data will be fetched from an EVM chain via the
+            Moralis API instead of Binance.
+        """
+        self.use_evm = use_evm
+        if not self.use_evm:
+            # Only initialize the Binance exchange when needed to avoid
+            # requiring ccxt configuration for on-chain usage.
+            self.exchange = Binance()
 
     def fetch_klines(self, symbol: str, interval: str = '1h', lookback: int = 100):
+        """Fetch OHLCV data from the configured data source."""
         pd.set_option('future.no_silent_downcasting', True)
+        if self.use_evm:
+            return self.fetch_evm_klines(symbol, interval, lookback)
         klines = self.exchange.fetch_ohlcv(symbol, interval, limit=lookback)
         df = pd.DataFrame(klines, columns=[
             'Open Time', 'Open', 'High', 'Low', 'Close', 'Volume',
@@ -42,14 +57,50 @@ class CompositeGenerator:
             df[col] = df[col].astype(float)
         return df[['Open', 'High', 'Low', 'Close', 'Volume']]
 
+    def fetch_evm_klines(self, ticker: str, interval: str, lookback: int):
+        """Retrieve OHLCV data for an on-chain pair using Moralis."""
+        # Import lazily to keep Binance-only usage lightweight.
+        from moralis_oclh import MoralisApi
+
+        chain, tokens = ticker.split(':', 1)
+        token0, token1 = tokens.split('/')
+
+        pair_address = MoralisApi.get_pair_address(token0, token1, chain=chain, time_period=interval)
+        klines = MoralisApi.get_klines(chain, interval, lookback, pair_address)
+
+        df = pd.DataFrame(klines)
+        # Moralis returns timestamps in milliseconds under the `timestamp` key.
+        df['Open Time'] = pd.to_datetime(df['timestamp'], unit='ms')
+        df.set_index('Open Time', inplace=True)
+        df.rename(columns={
+            'open': 'Open',
+            'high': 'High',
+            'low': 'Low',
+            'close': 'Close',
+            'volume': 'Volume',
+        }, inplace=True)
+        for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+            if col in df.columns:
+                df[col] = df[col].astype(float)
+            else:
+                df[col] = 0.0
+        return df[['Open', 'High', 'Low', 'Close', 'Volume']]
+
+    def _extract_symbol_parts(self, ticker: str):
+        """Return sanitized symbol and quote components for labeling."""
+        if self.use_evm:
+            sym = ticker.replace(':', '_').replace('/', '_')
+            return sym, ''
+        symbol = ticker.split('/')[0]
+        quote = ticker.split('/')[1]
+        return symbol, quote
+
     def generate_chart(self, base_ticker, quote_ticker, interval, lookback):
         base_df = self.fetch_klines(base_ticker, interval, lookback)
         quote_df = self.fetch_klines(quote_ticker, interval, lookback)
 
-        base_symbol = base_ticker.split('/')[0]
-        base_quote = base_ticker.split('/')[1]
-        quote_symbol = quote_ticker.split('/')[0]
-        quote_quote = quote_ticker.split('/')[1]
+        base_symbol, base_quote = self._extract_symbol_parts(base_ticker)
+        quote_symbol, quote_quote = self._extract_symbol_parts(quote_ticker)
 
         merged_df = pd.merge(base_df, quote_df, left_index=True, right_index=True,
                              suffixes=(f'_{base_symbol}', f'_{quote_symbol}'))
@@ -131,8 +182,11 @@ def main():
     parser.add_argument('--quote', required=True, help='Quote asset ticker (e.g., BTC/USDT)')
     parser.add_argument('--interval', default='1h', help='Interval for candlesticks (default: 1h)')
     parser.add_argument('--lookback', default=100, type=int, help='Number of candles to fetch (default: 100)')
+    parser.add_argument('--evm', action='store_true', help='Fetch market data from an EVM chain via Moralis')
     args = parser.parse_args()
-    CompositeGenerator().generate_chart(args.base.upper(), args.quote.upper(), args.interval, args.lookback)
+    CompositeGenerator(use_evm=args.evm).generate_chart(
+        args.base.upper(), args.quote.upper(), args.interval, args.lookback
+    )
 
 if __name__ == '__main__':
     main()

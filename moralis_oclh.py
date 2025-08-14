@@ -1,14 +1,25 @@
 import os
 
 import requests
-import dotenv
-from eth_typing import ChecksumAddress
+# Load environment variables if python-dotenv is available
+try:
+    import dotenv  # type: ignore
+    dotenv.load_dotenv()
+except Exception:
+    pass
+
+# moralis_oclh originally depended on eth_typing for ChecksumAddress.
+# To keep this module lightweight in environments where eth_typing isn't
+# installed, fall back to using simple strings for type hints.
+try:
+    from eth_typing import ChecksumAddress  # type: ignore
+except Exception:  # pragma: no cover - graceful fallback
+    ChecksumAddress = str  # type: ignore
 # from binance.ccxt.static_dependencies.ethereum import ChecksumAddress
 
 class OCLHFailError(Exception):
     pass
 
-dotenv.load_dotenv()
 API_KEY = os.environ.get('MORALIS_API_KEY')
 assert API_KEY is not None, 'MORALIS_API_KEY environment variable is not set'
 
