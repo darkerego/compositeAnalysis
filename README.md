@@ -2,12 +2,10 @@
 
 #### What ?
 
-
-
-This is a command line tool that generates composite instrument 
-charts. Currently, it uses binance's API, but the point is to 
-make this capable of working with decentralized exchanges as well. 
-Eventually I hope to be able to do something like: 
+This is a command line tool that generates composite instrument
+charts. It can pull market data from Binance via ccxt or directly
+from EVM chains using the Moralis Web3 API. With on-chain data you
+can compare liquidity pools across networks. For example:
 
 <pre>
 --evm --base arbitrum:0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f/0xaf88d065e77c8cC2239327C5EDb3A432268e5831 --quote base:0x63706e401c06ac8513145b7687A14804d17f814b/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
@@ -32,7 +30,13 @@ Only elite traders will understand why this is such a useful trick.
 
 
 <pre>
-python3 ./main.py --base BTC/USDT --quote ETH/USDT --interval 1h 
+python3 ./main.py --base BTC/USDT --quote ETH/USDT --interval 1h
+
+# on‑chain example (requires MORALIS_API_KEY env variable)
+python3 ./main.py --evm \
+    --base arbitrum:0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f/0xaf88d065e77c8cC2239327C5EDb3A432268e5831 \
+    --quote base:0x63706e401c06ac8513145b7687A14804d17f814b/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+    --interval 1h
 </pre>
 
 
